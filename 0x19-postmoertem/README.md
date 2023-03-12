@@ -1,61 +1,35 @@
-# Postmortem
+Issue Summary:
 
-Upon the release of ALX's System Engineering & DevOps project 0x19, approximately 06:00 West African Time (WAT) here in Nigeria, an outage occurred on an isolated Ubuntu 14.04 container running an Apache web server. GET requests on the server led to 500 Internal Server Error's, when the expected response was an HTML file defining a simple Holberton WordPress site.
+Duration: March 9, 2023 8:00 AM - March 10, 2023 2:00 PM EST (30 hours)
+Impact: The online shopping service was down, and customers were not able to access the website. The outage affected 80% of the users.
 
-## Debugging Process
+Root cause: The root cause of the outage was a database issue that occurred due to a disk failure.
 
-Bug debugger Bamidele (Lexxyla... as in my actual initials... made that up on the spot, pretty
-good, huh?) encountered the issue upon opening the project and being, well, instructed to
-address it, roughly 19:20 PST. He promptly proceeded to undergo solving the problem.
+Timeline:
 
-1. Checked running processes using `ps aux`. Two `apache2` processes - `root` and `www-data` -
-were properly running.
+March 9, 2023, 8:00 AM EST: The issue was first detected when a monitoring alert triggered, indicating that the database was not responding correctly.
+The team started investigating the issue and found that the website was not loading for users.
+They tried restarting the server, but it did not fix the issue.
+Assumptions were made that the database had some configuration issues, so the team tried adjusting some settings but did not see any improvement.
+March 9, 2023, 11:00 AM EST: The team escalated the incident to the senior database engineer.
+March 9, 2023, 12:00 PM EST: The senior database engineer identified the root cause of the issue as a disk failure.
+March 9, 2023, 1:00 PM EST: The team replaced the faulty disk and restored the database from the backup.
+March 10, 2023, 2:00 PM EST: The issue was resolved, and the online shopping service was back up and running.
+Root cause and resolution:
 
-2. Looked in the `sites-available` folder of the `/etc/apache2/` directory. Determined that
-the web server was serving content located in `/var/www/html/`.
+The root cause of the outage was a disk failure that caused the database to stop responding. The faulty disk was replaced, and the database was restored from the backup. The issue was resolved by fixing the hardware failure and restoring the database.
 
-3. In one terminal, ran `strace` on the PID of the `root` Apache process. In another, curled
-the server. Expected great things... only to be disappointed. `strace` gave no useful
-information.
+Corrective and preventative measures:
 
-4. Repeated step 3, except on the PID of the `www-data` process. Kept expectations lower this
-time... but was rewarded! `strace` revelead an `-1 ENOENT (No such file or directory)` error
-occurring upon an attempt to access the file `/var/www/html/wp-includes/class-wp-locale.phpp`.
+To prevent future outages, the following measures will be taken:
 
-5. Looked through files in the `/var/www/html/` directory one-by-one, using Vim pattern
-matching to try and locate the erroneous `.phpp` file extension. Located it in the
-`wp-settings.php` file. (Line 137, `require_once( ABSPATH . WPINC . '/class-wp-locale.php' );`).
+Regular hardware maintenance will be performed to ensure that all disks are functioning correctly.
+Additional monitoring will be set up to detect disk failures and prevent data loss.
+The backup strategy will be reviewed and updated to ensure that the most critical data is backed up frequently.
+The team will perform a postmortem to identify any additional steps that can be taken to prevent similar issues from happening in the future.
+Tasks to address the issue:
 
-6. Removed the trailing `p` from the line.
-
-7. Tested another `curl` on the server. 200 A-ok!
-
-8. Wrote a Puppet manifest to automate fixing of the error.
-
-## Summation
-
-In short, a typo. Gotta love'em. In full, the WordPress app was encountering a critical
-error in `wp-settings.php` when tyring to load the file `class-wp-locale.phpp`. The correct
-file name, located in the `wp-content` directory of the application folder, was
-`class-wp-locale.php`.
-
-Patch involved a simple fix on the typo, removing the trailing `p`.
-
-## Prevention
-
-This outage was not a web server error, but an application error. To prevent such outages
-moving forward, please keep the following in mind.
-
-* Test! Test test test. Test the application before deploying. This error would have arisen
-and could have been addressed earlier had the app been tested.
-
-* Status monitoring. Enable some uptime-monitoring service such as
-[UptimeRobot](./https://uptimerobot.com/) to alert instantly upon outage of the website.
-
-Note that in response to this error, I wrote a Puppet manifest
-[0-strace_is_your_friend.pp](https://github.com/lexxyla/alx-system_engineering-devops/blob/main/0x17-web_stack_debugging_3/0-strace_is_your_friend.pp)
-to automate fixing of any such identitical errors should they occur in the future. The manifest
-replaces any `phpp` extensions in the file `/var/www/html/wp-settings.php` with `php`.
-
-But of course, it will never occur again, because we're programmers, and we never make
-errors! :wink:
+Replace faulty disks promptly to prevent data loss and service disruption.
+Review and update backup strategy to ensure that critical data is backed up frequently.
+Implement additional monitoring to detect disk failures and prevent data loss.
+Perform a postmortem to identify any additional steps that can be taken to prevent similar issues from happening in the future.
